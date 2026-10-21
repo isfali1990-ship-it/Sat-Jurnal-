@@ -212,12 +212,14 @@ function parseSheet(rows,year){
     if(pay===null){pay=clean(g('pay'));er.push(`Naməlum ödəmə şəkli: "${pay}"`);ek.add('pay')}
     else if(pay===''){er.push('Ödəmə şəkli yoxdur');ek.add('pay')}
     else set('pay',g('pay'),pay,'Ödəmə');
-    let plant=canonPlant(g('plant'));
+    let plantSrc=g('plant');
+    if(clean(plantSrc)===''){const hit=r.find(c=>/^\s*(zavod|z)\s*-?\s*0*[12]\s*$/i.test(String(c??'')));if(hit!=null)plantSrc=hit}
+    let plant=canonPlant(plantSrc);
     if(plant===null){plant='';er.push(`Naməlum zavod: "${clean(g('plant'))}"`);ek.add('plant')}
     else if(plant===''){er.push('Zavod göstərilməyib');ek.add('plant')}
-    else set('plant',g('plant'),plant,'Zavod');
+    else if(clean(g('plant'))!=='')set('plant',g('plant'),plant,'Zavod');
     if(!cek)er.push('Çek nömrəsi yoxdur');
-    out.push({date,plant,material:mat,fraction:fr,client,plate,cek,unit,qty:qty??0,price:price??0,amount:amount??0,pay,note:clean(g('note')),_fx:fx,_er:er,_ch:[...ch],_ek:[...ek]});
+    out.push({date,plant,material:mat,fraction:fr,client,plate,cek,unit,qty:qty??0,price:price??0,amount:amount??0,pay,note:(/^\s*(zavod|z)\s*-?\s*0*[12]\s*$/i.test(String(g('note')??''))?'':clean(g('note'))),_fx:fx,_er:er,_ch:[...ch],_ek:[...ek]});
   }
   // duplicate cheque check
   const seen={};out.forEach(r=>{if(r.cek){if(seen[r.cek]){r._er.push(`Çek ${r.cek} təkrarlanır`);r._ek.push('cek')}seen[r.cek]=1}});
