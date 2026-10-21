@@ -163,7 +163,7 @@ const dShort=s=>{const [,m,d]=s.split('-');return `${+d} ${MSHORT[+m-1]}`};
 let toastT;function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,2600)}
 
 /* ---------- parsing ---------- */
-const HEAD={ss:'ss',sira:'ss',no:'ss',tarix:'date',material:'material',fraksiya:'fraction',kontragent:'client',musteri:'client',nomre:'plate',masinnomresi:'plate',ceknomresi:'cek',cek:'cek',ov:'unit',olcuvahidi:'unit',miqdar:'qty',qiymet:'price',mebleg:'amount',odemesekli:'pay',odenis:'pay',qeyd:'note',zavod:'plant',zavodno:'plant',sex:'plant'};
+const HEAD={ss:'ss',sira:'ss',no:'ss',tarix:'date',material:'material',fraksiya:'fraction',kontragent:'client',musteri:'client',nomre:'plate',masinnomresi:'plate',ceknomresi:'cek',cek:'cek',ov:'unit',olcuvahidi:'unit',miqdar:'qty',qiymet:'price',mebleg:'amount',odemesekli:'pay',odenis:'pay',qeyd:'note',zavod:'plant',zavodno:'plant',sex:'plant',matreal:'material',materiallar:'material',musteri:'client',mushteri:'client',alici:'client',qn:'cek',qaime:'cek',qaimenomresi:'cek',miqdari:'qty',ceki:'weight',cekisi:'weight',netto:'weight',menleg:'amount',meblegi:'amount',cem:'amount',masin:'plate',avtomobil:'plate'};
 function monthFromWord(w){const t=norm(w);if(!t)return 0;let i=MSHORT.indexOf(t.slice(0,3));if(t==='iyun'||t==='iyn')return 6;if(t==='iyul'||t==='iyl')return 7;if(i>=0&&!t.startsWith('iy'))return i+1;i=MONTHS.findIndex(m=>m.startsWith(t)||t.startsWith(m));return i+1}
 function parseDate(v,year){
   if(v instanceof Date&&!isNaN(v))return iso(v.getFullYear(),v.getMonth()+1,v.getDate());
@@ -189,6 +189,26 @@ function parseSheet(rows,year){
     const m={};(rows[i]||[]).forEach((c,j)=>{const k=HEAD[norm(c)];if(k&&!(k in m))m[k]=j});
     if(Object.keys(m).length>=4){hi=i;map=m;break}
   }
+  if(hi>=0){
+    const sample=rows.slice(hi+1,hi+61),ncol=Math.max(...sample.map(r=>r.length),rows[hi].length);
+    const frac=(j,fn)=>{let n=0,k=0;sample.forEach(r=>{const v=r[j];if(clean(v)!==''){n++;if(fn(v))k++}});return n?k/n:0};
+    const isPay=v=>['nisye','nisy','nagd','negd','kocurme','kart','bank'].includes(norm(v));
+    const isPlant=v=>/^\s*(zavod|z)\s*-?\s*0*[12]\s*$/i.test(String(v??''));
+    const isUnit=v=>['ton','tn','t','tonn','m3','kub','eded','ed'].includes(norm(v));
+    const used=()=>new Set(Object.values(map));
+    if(map.weight!=null){
+      if(map.qty!=null&&frac(map.qty,isUnit)>.6){if(map.unit==null)map.unit=map.qty;map.qty=map.weight}
+      else if(map.qty==null)map.qty=map.weight;
+    }
+    for(let j=0;j<ncol;j++){const u=used();
+      if(map.pay!=null&&map.plant!=null&&map.unit!=null)break;
+      if(map.pay==null&&!u.has(j)&&frac(j,isPay)>.6){map.pay=j;continue}
+      if(map.plant==null&&!u.has(j)&&frac(j,isPlant)>.6){map.plant=j;continue}
+      if(map.unit==null&&!u.has(j)&&frac(j,isUnit)>.6){map.unit=j;continue}
+    }
+    // header mapped to pay but holds plant values (e.g. two "Daşınma Növü" columns)
+    if(map.pay!=null&&frac(map.pay,isPlant)>.6){const pj=map.pay;delete map.pay;if(map.plant==null)map.plant=pj;for(let j=0;j<ncol;j++){if(!used().has(j)&&frac(j,isPay)>.6){map.pay=j;break}}}
+  }
   if(hi<0)throw new Error('Başlıq sətri tapılmadı. Faylda "Tarix", "Material", "Miqdar", "Qiymət" sütunları olmalıdır.');
   const out=[];
   for(let i=hi+1;i<rows.length;i++){
@@ -198,7 +218,7 @@ function parseSheet(rows,year){
     const set=(k,orig,val,label)=>{if(clean(orig)!==clean(val)&&clean(orig)!==''){fx.push(`${label}: "${clean(orig)}" → "${val}"`);ch.add(k)}return val};
     const date=parseDate(g('date'),year);if(!date){er.push('Tarix oxunmadı');ek.add('date')}
     const mRaw=g('material');const mat=set('material',mRaw,MAT[norm(mRaw)]||(clean(mRaw).charAt(0).toLocaleUpperCase('az')+clean(mRaw).slice(1)),'Material');
-    let frRaw=g('fraction');if(frRaw instanceof Date)frRaw='';const fr=set('fraction',frRaw,clean(frRaw).replace(/\s*[\/–—-]\s*/g,'-'),'Fraksiya');
+    let frRaw=g('fraction');if(frRaw instanceof Date)frRaw='';const fr=set('fraction',frRaw,clean(frRaw).replace(/\s*[\/–—-]\s*/g,'-').replace(/(\d)\s+(\d)/g,'$1-$2'),'Fraksiya');
     const client=set('client',g('client'),fixWords(g('client')),'Kontragent');
     const plate=set('plate',g('plate'),clean(g('plate')).toUpperCase().replace(/[\s\-]/g,''),'Nömrə');
     const cek=clean(g('cek')).replace(/\.0+$/,'');
@@ -263,7 +283,7 @@ function showReview(rows,fname){
 async function handleFile(f){
   try{
     const buf=await f.arrayBuffer();
-    const wb=XLSX.read(buf,{type:'array',cellDates:true});
+    const wb=XLSX.read(buf,{type:'array',cellDates:false});
     const ws=wb.Sheets[wb.SheetNames[0]];
     const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
     const parsed=parseSheet(rows,new Date().getFullYear());
