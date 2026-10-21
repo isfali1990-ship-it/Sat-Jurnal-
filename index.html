@@ -13,17 +13,18 @@
   --bg:#f3f2ef; --panel:#ffffff; --fg:#1f2326; --muted:#6b7074; --line:#dcdad4;
   --accent:#b8761c; --accent-soft:#f6ead7; --ok:#2f7d4f; --ok-soft:#e3f1e8;
   --warn:#a5561a; --warn-soft:#fbe9d8; --bad:#b3362c; --bad-soft:#f8e1de;
+  --z1:#2f68b8; --z2:#8a46a8;
   --display:"Archivo",system-ui,sans-serif; --body:"Archivo",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#17191b; --panel:#202326; --fg:#e8e6e1; --muted:#9a9ea2; --line:#33373b;
   --accent:#e0a14a; --accent-soft:#3a2e1d; --ok:#6cc08d; --ok-soft:#1d3226;
-  --warn:#e59a5c; --warn-soft:#3b2919; --bad:#ec7a70; --bad-soft:#3d2220; color-scheme:dark}}
+  --warn:#e59a5c; --warn-soft:#3b2919; --bad:#ec7a70; --bad-soft:#3d2220; --z1:#6f9ee6; --z2:#c08ad8; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#17191b; --panel:#202326; --fg:#e8e6e1; --muted:#9a9ea2; --line:#33373b;
   --accent:#e0a14a; --accent-soft:#3a2e1d; --ok:#6cc08d; --ok-soft:#1d3226;
-  --warn:#e59a5c; --warn-soft:#3b2919; --bad:#ec7a70; --bad-soft:#3d2220; color-scheme:dark}
+  --warn:#e59a5c; --warn-soft:#3b2919; --bad:#ec7a70; --bad-soft:#3d2220; --z1:#6f9ee6; --z2:#c08ad8; color-scheme:dark}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}[hidden]{display:none!important}
 body{margin:0;font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45}
 .wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
@@ -80,8 +81,44 @@ select{font:500 13px var(--body);padding:4px 6px;border:1px solid var(--line);bo
 .delbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end}
 .delbtn{color:var(--bad)}
 .btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{font:600 14px var(--body);background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:10px 14px;cursor:pointer;margin-bottom:-1px;white-space:nowrap}
+.tabs button.sel{color:var(--fg);border-bottom-color:var(--accent)}
+.view{display:flex;flex-direction:column;gap:18px}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.filters input[type=date],#mSearch{font:500 14px var(--body);padding:7px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--fg)}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.presets button{font:500 13px var(--body);border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:7px 11px;border-radius:4px;cursor:pointer}
+.presets button.sel{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.bar2{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--fg)}th.on{color:var(--accent)}
+.hero{display:grid;grid-template-columns:1.6fr repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+@media (max-width:900px){.hero{grid-template-columns:repeat(2,minmax(0,1fr))}.hero .big{grid-column:1/-1}}
+.hero>div{background:var(--panel);padding:16px 18px;min-width:0}
+.hero .l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.hero .v{font:600 24px var(--mono);font-variant-numeric:tabular-nums;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero .big .v{font-size:38px;letter-spacing:-.02em}
+.delta{font:600 12px var(--mono);margin-top:4px}.delta.up{color:var(--ok)}.delta.down{color:var(--bad)}.delta.flat{color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font:11px var(--mono)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.hbar{display:grid;grid-template-columns:minmax(90px,30%) 1fr auto;gap:10px;align-items:center;font-size:13px}
+.hbar .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbar .tr{height:10px;background:var(--bg);border-radius:2px;overflow:hidden;display:flex}
+.hbar .tr span{height:100%}
+.hbar .vl{font:500 12px var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.split{height:14px;border-radius:3px;overflow:hidden;display:flex;background:var(--bg)}
+.split span{height:100%}
+.pgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pgrid .pc{border:1px solid var(--line);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.pc .pv{font-size:20px}
 .fixed{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent)}
 .errc{background:var(--bad-soft);color:var(--bad)}
+.warnc{color:var(--warn)}
 .fixlist{font-size:12px;color:var(--muted);white-space:normal;min-width:220px}
 .fixlist span{display:block}
 .fixlist .e{color:var(--bad)}
@@ -125,7 +162,13 @@ section{min-width:0}
     </div>
     <div class="who"><span class="live" id="live"><span class="dot"></span><span id="liveTxt">Qoşulur…</span></span><span id="me"></span><button class="linkbtn" id="usersBtn" hidden>İstifadəçilər</button><button class="linkbtn" id="logout">Çıxış</button></div>
   </header>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-view="jurnal" class="sel">Jurnal</button>
+    <button role="tab" data-view="musteri">Müştərilər</button>
+    <button role="tab" data-view="rehber">Rəhbərlik</button>
+  </nav>
 
+  <div id="v-jurnal" class="view">
   <label class="drop" id="drop" hidden>
     <input type="file" id="file" accept=".xlsx,.xls,.csv">
     <b>Səhər hesabatını yüklə</b>
@@ -144,6 +187,18 @@ section{min-width:0}
   <div class="panel" id="users" hidden><div class="bar"><h2 style="margin:0">İstifadəçilər</h2><button class="btn ghost" id="usersClose">Bağla</button></div><div class="note">Yeni qeydiyyatdan keçən "Gözləyir" statusunda olur. Rol ver: Yükləyən faylı yükləyir, Baxan yalnız baxır.</div><div class="tablebox users"><table id="usersTable"></table></div></div>
   <div class="days" id="days"></div>
   <div id="main"><div class="empty">Hələ hesabat yoxdur. Səhər Excel faylını yüklə, cədvəl burada görünəcək.</div></div>
+  </div>
+
+  <div id="v-musteri" class="view" hidden>
+    <div class="filters" id="fM"></div>
+    <div class="bar2"><div class="note" id="mSum"></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="mSearch" type="search" placeholder="Müştəri axtar" aria-label="Müştəri axtar"><button class="btn ghost" id="mXlsx">Excel-ə çıxar</button></div></div>
+    <div class="tablebox"><table id="mTable"></table></div>
+  </div>
+
+  <div id="v-rehber" class="view" hidden>
+    <div class="filters" id="fR"></div>
+    <div id="rBody"></div>
+  </div>
 </div>
 <div class="toast" id="toast" hidden></div>
 <div class="wrap" id="pendingWrap" hidden><div class="auth"><h1 style="font-size:22px">Təsdiq gözləyir</h1><div class="note">Hesabın yaradılıb. Admin sənə rol verəndən sonra cədvəl görünəcək.</div><button class="btn ghost" id="logout2">Çıxış</button></div></div>
@@ -380,6 +435,121 @@ document.addEventListener('click',async e=>{
 $('cancel').onclick=()=>{pending=null;$('review').hidden=true};
 $('publish').onclick=publish;
 
+
+/* ---------- views ---------- */
+const VIEWS=['jurnal','musteri','rehber'];let view='jurnal';
+function setView(v){if(!VIEWS.includes(v))v='jurnal';view=v;
+  VIEWS.forEach(x=>$('v-'+x).hidden=x!==v);
+  document.querySelectorAll('.tabs button').forEach(b=>{b.classList.toggle('sel',b.dataset.view===v);b.setAttribute('aria-selected',b.dataset.view===v)});
+  try{history.replaceState(null,'','#'+v)}catch(e){}
+  if(v==='musteri')loadClients();if(v==='rehber')loadDash();}
+document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-view]');if(b)setView(b.dataset.view)});
+
+/* ---------- period filter ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const isoD=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function preset(k){const t=new Date();const y=t.getFullYear(),m=t.getMonth();
+  if(k==='today')return [isoD(t),isoD(t)];
+  if(k==='yest'){const d=new Date(y,m,t.getDate()-1);return [isoD(d),isoD(d)]}
+  if(k==='week'){const d=new Date(y,m,t.getDate()-((t.getDay()+6)%7));return [isoD(d),isoD(t)]}
+  if(k==='month')return [isoD(new Date(y,m,1)),isoD(new Date(y,m+1,0))];
+  if(k==='prev')return [isoD(new Date(y,m-1,1)),isoD(new Date(y,m,0))];
+  if(k==='year')return [isoD(new Date(y,0,1)),isoD(new Date(y,11,31))];
+  return ['',''];}
+const PRESETS=[['today','Bu gün'],['yest','Dünən'],['week','Bu həftə'],['month','Bu ay'],['prev','Keçən ay'],['year','Bu il'],['all','Bütün dövr']];
+const fState={M:{from:'',to:'',plant:'',pk:'all'},R:{from:'',to:'',plant:'',pk:'month'}};
+[fState.R.from,fState.R.to]=preset('month');
+function renderFilter(id,cb){const st=fState[id];const el=$('f'+id);
+  el.innerHTML=`<label>Başlanğıc<input type="date" id="${id}from" value="${st.from}"></label><label>Son<input type="date" id="${id}to" value="${st.to}"></label>
+  <div class="presets">${PRESETS.map(([k,l])=>`<button data-pk="${k}" class="${st.pk===k?'sel':''}">${l}</button>`).join('')}</div>
+  <div class="seg">${[['','Hər iki zavod'],['Zavod 1','Zavod 1'],['Zavod 2','Zavod 2']].map(([v,l])=>`<button data-pl="${v}" class="${st.plant===v?'sel':''}">${l}</button>`).join('')}</div>`;
+  el.onclick=e=>{const pk=e.target.closest('[data-pk]'),pl=e.target.closest('[data-pl]');
+    if(pk){st.pk=pk.dataset.pk;[st.from,st.to]=preset(st.pk);renderFilter(id,cb);cb()}
+    if(pl){st.plant=pl.dataset.pl;renderFilter(id,cb);cb()}};
+  el.onchange=e=>{if(e.target.type==='date'){st.from=$(id+'from').value;st.to=$(id+'to').value;st.pk='';renderFilter(id,cb);cb()}};}
+const periodTxt=st=>st.from||st.to?`${st.from?dmy(st.from):'…'} – ${st.to?dmy(st.to):'…'}`:'bütün dövr';
+const rpcArgs=st=>({d_from:st.from||null,d_to:st.to||null,p_plant:st.plant||null});
+
+/* ---------- müştəri report ---------- */
+let clients=[],mSort={k:'total',dir:-1},mBusy=0;
+const MCOLS=[['client','Müştəri',''],['ceks','Çek','n'],['tons','Ton','n'],['total','Məbləğ','n'],['cash','Nağd','n'],['credit','Nisyə','n'],['z1','Zavod 1','n'],['z2','Zavod 2','n'],['first_date','İlk alış',''],['last_date','Son alış','']];
+async function loadClients(){const st=fState.M;const my=++mBusy;$('mSum').textContent='Yüklənir…';
+  const {data,error}=await sb.rpc('client_report',rpcArgs(st));if(my!==mBusy)return;
+  if(error){$('mSum').textContent='Hesabat açılmadı: '+error.message;return}
+  clients=data.map(r=>({...r,ceks:+r.ceks,tons:+r.tons,total:+r.total,cash:+r.cash,credit:+r.credit,z1:+r.z1,z2:+r.z2}));renderClients();}
+function renderClients(){const st=fState.M;const q=norm($('mSearch').value);
+  let rows=clients.filter(r=>!q||norm(r.client).includes(q));
+  const k=mSort.k,d=mSort.dir;rows=[...rows].sort((a,b)=>{const x=a[k],y=b[k];return (typeof x==='string'?String(x).localeCompare(String(y),'az'):x-y)*d});
+  const T=rows.reduce((t,r)=>{['ceks','tons','total','cash','credit','z1','z2'].forEach(f=>t[f]+=r[f]);return t},{ceks:0,tons:0,total:0,cash:0,credit:0,z1:0,z2:0});
+  const real=rows.filter(r=>r.client!=='Nağd Satış').length;
+  $('mSum').textContent=`${real} müştəri${rows.length>real?' + nağd satış':''} · ${periodTxt(st)}${st.plant?' · '+st.plant:''}`;
+  const cellM=(r,c)=>c==='client'?esc(r.client):c.endsWith('_date')?(r[c]?dmy(r[c]):'—'):c==='ceks'?r.ceks:c==='tons'?fmt(r.tons,3):fmt(r[c]);
+  $('mTable').innerHTML=`<thead><tr><th class="n">#</th>${MCOLS.map(([c,l,cl])=>`<th class="sort ${cl} ${mSort.k===c?'on':''}" data-k="${c}">${l}${mSort.k===c?(mSort.dir<0?' ↓':' ↑'):''}</th>`).join('')}</tr></thead>
+  <tbody>${rows.length?rows.map((r,i)=>`<tr><td class="n">${i+1}</td>${MCOLS.map(([c,,cl])=>`<td class="${cl} ${c==='credit'&&r.credit?'warnc':''}">${cellM(r,c)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="11" class="note" style="text-align:center;padding:24px">Bu dövrdə satış yoxdur.</td></tr>`}</tbody>
+  ${rows.length?`<tfoot><tr><td></td><td>Cəmi</td><td class="n">${T.ceks}</td><td class="n">${fmt(T.tons,3)}</td><td class="n">${fmt(T.total)}</td><td class="n">${fmt(T.cash)}</td><td class="n">${fmt(T.credit)}</td><td class="n">${fmt(T.z1)}</td><td class="n">${fmt(T.z2)}</td><td colspan="2"></td></tr></tfoot>`:''}`;
+  $('mTable').dataset.rows=JSON.stringify(rows.length);clientsShown=rows;}
+let clientsShown=[];
+$('mTable').addEventListener('click',e=>{const th=e.target.closest('th[data-k]');if(!th)return;const k=th.dataset.k;mSort=mSort.k===k?{k,dir:-mSort.dir}:{k,dir:(k==='client'?1:-1)};renderClients()});
+$('mSearch').addEventListener('input',()=>renderClients());
+$('mXlsx').onclick=()=>{const st=fState.M;const aoa=[['Müştəri','Çek','Ton','Məbləğ','Nağd','Nisyə','Zavod 1','Zavod 2','İlk alış','Son alış'],...clientsShown.map(r=>[r.client,r.ceks,r.tons,r.total,r.cash,r.credit,r.z1,r.z2,r.first_date?dmy(r.first_date):'',r.last_date?dmy(r.last_date):''])];
+  const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=[{wch:28},{wch:7},{wch:11},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:11},{wch:11}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Müştərilər');
+  XLSX.writeFile(wb,`Müştərilər ${st.from||st.to?(st.from||'')+'_'+(st.to||''):'bütün dövr'}${st.plant?' '+st.plant:''}.xlsx`)};
+
+/* ---------- rəhbərlik dashboard ---------- */
+let rBusy=0;
+function delta(cur,prev){if(prev==null)return '';if(!prev)return cur?'<div class="delta up">yeni</div>':'<div class="delta flat">—</div>';const p=(cur-prev)/prev*100;const c=Math.abs(p)<.5?'flat':p>0?'up':'down';return `<div class="delta ${c}">${p>0?'▲':p<0?'▼':''} ${fmt(Math.abs(p),1)}% əvvəlki dövrə görə</div>`}
+function niceMax(v){if(v<=0)return 1;const e=Math.pow(10,Math.floor(Math.log10(v)));const f=v/e;return (f<=1?1:f<=2?2:f<=5?5:10)*e}
+function kfmt(v){return v>=1e6?fmt(v/1e6,1)+'M':v>=1e3?fmt(v/1e3,v>=1e4?0:1)+'k':fmt(v)}
+function dailyChart(daily){
+  if(!daily.length)return '<div class="note">Bu dövrdə satış yoxdur.</div>';
+  const W=900,H=260,L=52,Rp=12,T=14,B=30,iw=W-L-Rp,ih=H-T-B;
+  const mx=niceMax(Math.max(...daily.map(d=>d.z1+d.z2+d.other)));const n=daily.length;const slot=iw/n;const bw=Math.max(2,Math.min(42,slot*.7));
+  const y=v=>T+ih-(v/mx)*ih;let g='';
+  for(let i=0;i<=4;i++){const v=mx*i/4,yy=y(v);g+=`<line x1="${L}" x2="${W-Rp}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${yy+4}" text-anchor="end">${kfmt(v)}</text>`}
+  const every=Math.ceil(n/14);
+  daily.forEach((d,i)=>{const x=L+slot*i+(slot-bw)/2;let base=T+ih;
+    [['z1','var(--z1)'],['z2','var(--z2)'],['other','var(--muted)']].forEach(([k,c])=>{if(d[k]>0){const h=(d[k]/mx)*ih;base-=h;g+=`<rect x="${x}" y="${base}" width="${bw}" height="${h}" fill="${c}"><title>${dmy(d.date)} · ${k==='z1'?'Zavod 1':k==='z2'?'Zavod 2':'Zavodsuz'}: ${man(d[k])}</title></rect>`}});
+    if(i%every===0||i===n-1)g+=`<text x="${x+bw/2}" y="${H-10}" text-anchor="middle">${dShort(d.date)}</text>`;});
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Günlük satış qrafiki">${g}</svg>`;}
+function hbars(items,label,val,max,colorFn,extra){return items.map(it=>{const v=val(it);return `<div class="hbar"><span class="nm" title="${esc(label(it))}">${esc(label(it))}</span><span class="tr">${colorFn(it,max)}</span><span class="vl">${extra(it)}</span></div>`}).join('')}
+async function loadDash(){const st=fState.R;const my=++rBusy;$('rBody').innerHTML='<div class="note">Yüklənir…</div>';
+  const {data,error}=await sb.rpc('dashboard',rpcArgs(st));if(my!==rBusy)return;
+  if(error){$('rBody').innerHTML=`<div class="empty">Dashboard açılmadı: ${esc(error.message)}</div>`;return}
+  const D=data,t=D.totals,pv=D.prev;const num=o=>{for(const k in o)if(o[k]!=null&&!isNaN(o[k]))o[k]=+o[k];return o};num(t);if(pv)num(pv);
+  const daily=D.daily.map(d=>num({...d}));const plants=D.plants.map(p=>num({...p}));const mats=D.materials.map(m=>num({...m}));const cl=D.clients.map(c=>num({...c}));
+  const avg=t.tons?t.total/t.tons:0,creditPct=t.total?t.credit/t.total*100:0;
+  const z=n=>plants.find(p=>p.plant===n)||{total:0,tons:0,ceks:0,cash:0,credit:0};const Z1=z('Zavod 1'),Z2=z('Zavod 2');const zs=Z1.total+Z2.total||1;
+  const mMax=Math.max(1,...mats.map(m=>m.total)),cMax=Math.max(1,...cl.map(c=>c.total));
+  $('rBody').innerHTML=`
+  <div class="view">
+    <div class="hero">
+      <div class="big"><div class="l">Satış · ${periodTxt(st)}${st.plant?' · '+st.plant:''}</div><div class="v">${man(t.total)}</div>${delta(t.total,pv&&pv.total)}</div>
+      <div><div class="l">Tonaj</div><div class="v">${fmt(t.tons,0)} t</div>${delta(t.tons,pv&&pv.tons)}</div>
+      <div><div class="l">Çek sayı</div><div class="v">${fmt(t.ceks,0)}</div>${delta(t.ceks,pv&&pv.ceks)}</div>
+      <div><div class="l">Orta qiymət</div><div class="v">${fmt(avg)} ₼/t</div><div class="delta flat">${t.days} iş günü · ${t.clients} müştəri</div></div>
+      <div><div class="l">Nisyə payı</div><div class="v" style="color:var(--warn)">${fmt(creditPct,1)}%</div><div class="delta flat">${man(t.credit)}</div></div>
+    </div>
+    <div class="card"><div class="bar2"><h2>Günlük satış</h2><div class="legend"><span><i style="background:var(--z1)"></i>Zavod 1</span><span><i style="background:var(--z2)"></i>Zavod 2</span></div></div>${dailyChart(daily)}</div>
+    <div class="grid2">
+      <div class="card"><h2>Zavodlar</h2>
+        <div class="split" title="Zavod 1: ${fmt(Z1.total/zs*100,1)}% · Zavod 2: ${fmt(Z2.total/zs*100,1)}%"><span style="width:${Z1.total/zs*100}%;background:var(--z1)"></span><span style="width:${Z2.total/zs*100}%;background:var(--z2)"></span></div>
+        <div class="pgrid">${[['Zavod 1',Z1],['Zavod 2',Z2]].map(([n,p])=>`<div class="pc"><span class="pill z${n.slice(-1)}" style="align-self:flex-start">${n} · ${fmt(p.total/zs*100,0)}%</span><span class="pv v" style="font:600 20px var(--mono)">${man(p.total)}</span><span class="note">${fmt(p.tons,0)} t · ${p.ceks} çek · ${p.tons?fmt(p.total/p.tons):0} ₼/t</span><span class="ps"><span style="color:var(--ok)">Nağd ${fmt(p.cash)}</span><span style="color:var(--warn)">Nisyə ${fmt(p.credit)}</span></span></div>`).join('')}</div>
+      </div>
+      <div class="card"><h2>Ödəmə strukturu</h2>
+        <div class="split"><span style="width:${t.total?t.cash/t.total*100:0}%;background:var(--ok)"></span><span style="width:${creditPct}%;background:var(--warn)"></span></div>
+        <div class="pgrid"><div class="pc"><span class="pill nagd" style="align-self:flex-start">Nağd · ${fmt(t.total?t.cash/t.total*100:0,0)}%</span><span style="font:600 20px var(--mono)">${man(t.cash)}</span></div>
+        <div class="pc"><span class="pill nisye" style="align-self:flex-start">Nisyə · ${fmt(creditPct,0)}%</span><span style="font:600 20px var(--mono)">${man(t.credit)}</span>${pv?`<span class="note">Əvvəlki dövr: ${man(pv.credit)}</span>`:''}</div></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Material üzrə</h2>${mats.length?hbars(mats,m=>m.material,m=>m.total,mMax,(m,mx)=>`<span style="width:${m.total/mx*100}%;background:var(--accent)"></span>`,m=>`${man(m.total)} · ${fmt(m.tons,0)} t${m.avg?` · ${fmt(m.avg)} ₼/t`:''}`):'<div class="note">Məlumat yoxdur.</div>'}</div>
+      <div class="card"><div class="bar2"><h2>Top 10 müştəri</h2><div class="legend"><span><i style="background:var(--warn)"></i>nisyə</span><span><i style="background:var(--ok)"></i>nağd</span></div></div>${cl.length?hbars(cl,c=>c.client,c=>c.total,cMax,(c,mx)=>`<span style="width:${c.credit/mx*100}%;background:var(--warn)"></span><span style="width:${(c.total-c.credit)/mx*100}%;background:var(--ok)"></span>`,c=>man(c.total)):'<div class="note">Məlumat yoxdur.</div>'}</div>
+    </div>
+  </div>`;}
+renderFilter('M',loadClients);renderFilter('R',loadDash);
+function refreshReports(){if(view==='musteri')loadClients();if(view==='rehber')loadDash()}
+
 const SUPABASE_URL='https://picziajcjpfiwclgamop.supabase.co';
 const SUPABASE_KEY='sb_publishable_hfwVIZWP2MQu1j3xKuC0og_c3K4Fy1X';
 sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -423,10 +593,10 @@ async function start(session){
   canWrite=role==='admin'||role==='uploader';
   $('drop').hidden=!canWrite;$('usersBtn').hidden=role!=='admin';
   $('me').textContent=`${me.email} · ${ROLES[role]}`;
-  show('app');await loadDays();
-  channel=sb.channel('sales').on('postgres_changes',{event:'*',schema:'public',table:'sales_days'},()=>loadDays()).subscribe();
+  show('app');setView((location.hash||'').slice(1));await loadDays();
+  channel=sb.channel('sales').on('postgres_changes',{event:'*',schema:'public',table:'sales_days'},()=>{loadDays();refreshReports()}).subscribe();
 }
-if(!AUTH_ENABLED){(async()=>{me={id:null};role='uploader';canWrite=true;$('drop').hidden=false;$('usersBtn').hidden=true;$('logout').hidden=true;$('me').textContent='';show('app');await loadDays();channel=sb.channel('sales').on('postgres_changes',{event:'*',schema:'public',table:'sales_days'},()=>loadDays()).subscribe()})()}
+if(!AUTH_ENABLED){(async()=>{me={id:null};role='uploader';canWrite=true;$('drop').hidden=false;$('usersBtn').hidden=true;$('logout').hidden=true;$('me').textContent='';show('app');setView((location.hash||'').slice(1));await loadDays();channel=sb.channel('sales').on('postgres_changes',{event:'*',schema:'public',table:'sales_days'},()=>{loadDays();refreshReports()}).subscribe()})()}
 else{let lastUid;sb.auth.onAuthStateChange((ev,session)=>{if(ev==='PASSWORD_RECOVERY'||recovering){if(ev==='PASSWORD_RECOVERY')setTimeout(recoveryMode,0);return}const uid=session?.user?.id||null;if(uid===lastUid&&ev!=='SIGNED_OUT')return;lastUid=uid;setTimeout(()=>start(session),0)})}
 </script>
 </body>
