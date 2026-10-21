@@ -352,7 +352,7 @@ const ROLES={admin:'Admin',uploader:'Yükləyən',viewer:'Baxan',pending:'Gözl�
 function show(w){['authWrap','app','pendingWrap'].forEach(id=>$(id).hidden=id!==w)}
 $('authMode').onclick=()=>{signup=!signup;$('authBtn').textContent=signup?'Qeydiyyatdan keç':'Daxil ol';$('authMode').textContent=signup?'Hesabın var? Daxil ol':'Hesabın yoxdur? Qeydiyyat';$('pass').autocomplete=signup?'new-password':'current-password'};
 $('authForm').addEventListener('submit',async e=>{e.preventDefault();const email=$('email').value.trim(),password=$('pass').value;$('authBtn').disabled=true;
-  const {data,error}=signup?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});
+  const {data,error}=signup?await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin}}):await sb.auth.signInWithPassword({email,password});
   $('authBtn').disabled=false;
   if(error){$('authNote').textContent=error.message.includes('Invalid login')?'E-poçt və ya şifrə səhvdir.':error.message.includes('not confirmed')?'E-poçtunu təsdiqlə: sənə gələn məktubdakı linkə bas.':error.message;$('authNote').className='note warn';return}
   if(signup&&!data.session){$('authNote').textContent='E-poçtuna təsdiq məktubu göndərildi. Linkə bas, sonra daxil ol.';$('authNote').className='note'}});
