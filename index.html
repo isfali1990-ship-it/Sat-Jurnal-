@@ -270,7 +270,7 @@ function showReview(rows,fname){
   $('revTitle').textContent=`${fname} · ${rows.length} sətir`;
   let note=`${nFix} düzəliş edildi`+(nErr?`, ${nErr} problem var (qırmızı)`:', problem yoxdur')+'.';
   if(dates.length)note+=` Gün: ${dates.map(dmy).join(', ')}.`;
-  if(exist.length)note+=` ${exist.map(dmy).join(', ')} artıq yayımlanıb, yenisi onu əvəz edəcək.`;
+  if(exist.length){const pl=[...new Set(rows.map(r=>r.plant).filter(Boolean))].join(', ')||'zavodsuz sətirlər';note+=` ${exist.map(dmy).join(', ')} günündə yalnız ${pl} məlumatı yenilənəcək, digər zavod toxunulmaz qalır.`}
   $('revNote').textContent=note;$('revNote').className='note'+(nErr||exist.length?' warn':'');
   selCtx='rev';
   const head='<thead><tr>'+COLS.map(c=>`<th class="${c[2]}">${c[1]}</th>`).join('')+'<th>Düzəlişlər</th></tr></thead>';
@@ -296,9 +296,13 @@ async function publish(){
   const by={};pending.rows.filter(r=>r.date).forEach(r=>{(by[r.date]=by[r.date]||[]).push(r)});
   try{
     for(const d of Object.keys(by).sort()){
-      const rows=by[d].map(({_fx,_er,_ch,_ek,...r})=>({...r,fixes:_fx,issues:_er}));
+      const fresh=by[d].map(({_fx,_er,_ch,_ek,...r})=>({...r,fixes:_fx,issues:_er}));
+      const up=new Set(fresh.map(r=>r.plant||''));const old=days.find(x=>x.date===d);
+      const kept=(old?.rows||[]).filter(r=>!up.has(r.plant||''));
+      const rows=[...kept,...fresh];
+      const files=[...new Set([...(old&&kept.length?String(old.file||'').split(' + '):[]),pending.fname].filter(Boolean))].join(' + ');
       const t=totals(rows);
-      const {error}=await sb.from('sales_days').upsert({date:d,rows,file:pending.fname,uploaded_at:new Date().toISOString(),uploaded_by:me.id,total:r2(t.sum),cash:r2(t.cash),credit:r2(t.credit),tons:r2(t.qty)});
+      const {error}=await sb.from('sales_days').upsert({date:d,rows,file:files,uploaded_at:new Date().toISOString(),uploaded_by:me.id,total:r2(t.sum),cash:r2(t.cash),credit:r2(t.credit),tons:r2(t.qty)});
       if(error)throw error;
     }
     selDay=Object.keys(by).sort().pop();pending=null;$('review').hidden=true;toast('Yayımlandı');
