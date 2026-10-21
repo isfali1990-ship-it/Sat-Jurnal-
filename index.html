@@ -111,6 +111,7 @@ section{min-width:0}
     <label>Şifrə<input id="pass" type="password" autocomplete="current-password" minlength="6" required></label>
     <button class="btn" id="authBtn" type="submit">Daxil ol</button>
     <button class="linkbtn" id="authMode" type="button">Hesabın yoxdur? Qeydiyyat</button>
+    <button class="linkbtn" id="forgot" type="button">Şifrəni unutdum</button>
   </form>
 </div>
 <div class="wrap" id="app" hidden>
@@ -347,11 +348,17 @@ $('publish').onclick=publish;
 const SUPABASE_URL='https://picziajcjpfiwclgamop.supabase.co';
 const SUPABASE_KEY='sb_publishable_hfwVIZWP2MQu1j3xKuC0og_c3K4Fy1X';
 sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let signup=false,channel=null;
+let signup=false,channel=null,recovering=false;
 const ROLES={admin:'Admin',uploader:'Yükləyən',viewer:'Baxan',pending:'Gözləyir'};
 function show(w){['authWrap','app','pendingWrap'].forEach(id=>$(id).hidden=id!==w)}
 $('authMode').onclick=()=>{signup=!signup;$('authBtn').textContent=signup?'Qeydiyyatdan keç':'Daxil ol';$('authMode').textContent=signup?'Hesabın var? Daxil ol':'Hesabın yoxdur? Qeydiyyat';$('pass').autocomplete=signup?'new-password':'current-password'};
+$('forgot').onclick=async()=>{const email=$('email').value.trim();if(!email){$('authNote').textContent='Əvvəlcə e-poçtunu yaz, sonra "Şifrəni unutdum"-a bas.';$('authNote').className='note warn';return}
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});
+  $('authNote').textContent=error?error.message:'E-poçtuna şifrə bərpa linki göndərildi. Linkə bas, yeni şifrə təyin et.';$('authNote').className='note'+(error?' warn':'')};
+function recoveryMode(){recovering=true;show('authWrap');$('email').closest('label').hidden=true;$('email').required=false;$('authMode').hidden=true;$('forgot').hidden=true;$('authBtn').textContent='Yeni şifrəni saxla';$('pass').autocomplete='new-password';$('pass').value='';$('authNote').textContent='Yeni şifrəni yaz (ən azı 6 simvol).';$('authNote').className='note'}
 $('authForm').addEventListener('submit',async e=>{e.preventDefault();const email=$('email').value.trim(),password=$('pass').value;$('authBtn').disabled=true;
+  if(recovering){const {error}=await sb.auth.updateUser({password});$('authBtn').disabled=false;if(error){$('authNote').textContent=error.message;$('authNote').className='note warn';return}
+    recovering=false;$('email').closest('label').hidden=false;$('email').required=true;$('authMode').hidden=false;$('forgot').hidden=false;$('authBtn').textContent='Daxil ol';toast('Şifrə dəyişdi');const {data}=await sb.auth.getSession();start(data.session);return}
   const {data,error}=signup?await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin}}):await sb.auth.signInWithPassword({email,password});
   $('authBtn').disabled=false;
   if(error){$('authNote').textContent=error.message.includes('Invalid login')?'E-poçt və ya şifrə səhvdir.':error.message.includes('not confirmed')?'E-poçtunu təsdiqlə: sənə gələn məktubdakı linkə bas.':error.message;$('authNote').className='note warn';return}
@@ -383,7 +390,7 @@ async function start(session){
   show('app');await loadDays();
   channel=sb.channel('sales').on('postgres_changes',{event:'*',schema:'public',table:'sales_days'},()=>loadDays()).subscribe();
 }
-let lastUid;sb.auth.onAuthStateChange((ev,session)=>{const uid=session?.user?.id||null;if(uid===lastUid&&ev!=='SIGNED_OUT')return;lastUid=uid;setTimeout(()=>start(session),0)});
+let lastUid;sb.auth.onAuthStateChange((ev,session)=>{if(ev==='PASSWORD_RECOVERY'||recovering){if(ev==='PASSWORD_RECOVERY')setTimeout(recoveryMode,0);return}const uid=session?.user?.id||null;if(uid===lastUid&&ev!=='SIGNED_OUT')return;lastUid=uid;setTimeout(()=>start(session),0)});
 </script>
 </body>
 </html>
