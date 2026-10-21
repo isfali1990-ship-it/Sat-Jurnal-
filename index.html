@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Satış Jurnalı</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+/* Layout: karxana kassa jurnalı — üstdə gün seçimi, xülasə zolağı, sonra çek cədvəli */
+:root{
+  --bg:#f3f2ef; --panel:#ffffff; --fg:#1f2326; --muted:#6b7074; --line:#dcdad4;
+  --accent:#b8761c; --accent-soft:#f6ead7; --ok:#2f7d4f; --ok-soft:#e3f1e8;
+  --warn:#a5561a; --warn-soft:#fbe9d8; --bad:#b3362c; --bad-soft:#f8e1de;
+  --display:"Archivo",system-ui,sans-serif; --body:"Archivo",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#17191b; --panel:#202326; --fg:#e8e6e1; --muted:#9a9ea2; --line:#33373b;
+  --accent:#e0a14a; --accent-soft:#3a2e1d; --ok:#6cc08d; --ok-soft:#1d3226;
+  --warn:#e59a5c; --warn-soft:#3b2919; --bad:#ec7a70; --bad-soft:#3d2220; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#17191b; --panel:#202326; --fg:#e8e6e1; --muted:#9a9ea2; --line:#33373b;
+  --accent:#e0a14a; --accent-soft:#3a2e1d; --ok:#6cc08d; --ok-soft:#1d3226;
+  --warn:#e59a5c; --warn-soft:#3b2919; --bad:#ec7a70; --bad-soft:#3d2220; color-scheme:dark}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}[hidden]{display:none!important}
+body{margin:0;font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:2px solid var(--fg);padding-bottom:12px}
+h1{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.live.on .dot{background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+.btn{font:600 14px var(--body);border:1px solid var(--fg);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:4px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg)}
+.btn:focus-visible,.chip:focus-visible,.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:default}
+.drop{border:1.5px dashed var(--line);border-radius:6px;padding:16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--panel)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop b{font-family:var(--display)}
+.drop input{display:none}
+.days{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.chip{flex:none;font:500 13px var(--mono);border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:6px 10px;border-radius:4px;cursor:pointer;font-variant-numeric:tabular-nums}
+.chip.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.kpi{background:var(--panel);padding:12px 14px;min-width:0}
+.kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.kpi .v{font:600 22px var(--mono);font-variant-numeric:tabular-nums;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tablebox{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--panel)}
+td{padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.m{font-family:var(--mono)}
+tfoot td{font-weight:700;border-top:2px solid var(--fg)}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px}
+.pill.nagd{background:var(--ok-soft);color:var(--ok)}
+.pill.nisye{background:var(--warn-soft);color:var(--warn)}
+.pill.other{background:var(--accent-soft);color:var(--accent)}
+.pill.z1{background:#e4ecf7;color:#2a5aa0}.pill.z2{background:#efe4f4;color:#7a3d93}.pill.miss{background:var(--bad-soft);color:var(--bad)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill.z1{background:#1f2c40;color:#8fb5ea}:root:not([data-theme="light"]) .pill.z2{background:#33223b;color:#cfa0e2}}
+:root[data-theme="dark"] .pill.z1{background:#1f2c40;color:#8fb5ea}:root[data-theme="dark"] .pill.z2{background:#33223b;color:#cfa0e2}
+.plants{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.plants{grid-template-columns:1fr}}
+.plant{all:unset;box-sizing:border-box;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.plant.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.plant:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pn{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pv{font:600 24px var(--mono);font-variant-numeric:tabular-nums}
+.ps{display:flex;flex-wrap:wrap;gap:12px;font:500 12px var(--mono)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;align-self:flex-start}
+.seg button{font:600 13px var(--body);background:var(--panel);color:var(--fg);border:0;padding:7px 14px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.sel{background:var(--fg);color:var(--bg)}
+select{font:500 13px var(--body);padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--fg)}
+.fixed{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent)}
+.errc{background:var(--bad-soft);color:var(--bad)}
+.fixlist{font-size:12px;color:var(--muted);white-space:normal;min-width:220px}
+.fixlist span{display:block}
+.fixlist .e{color:var(--bad)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+h2{font-family:var(--display);font-size:16px;font-weight:700;margin:0 0 8px}
+section{min-width:0}
+.panel{background:var(--panel);border:1px solid var(--accent);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.note{font-size:13px;color:var(--muted)}
+.note.warn{color:var(--warn)}
+.empty{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:28px 18px;text-align:center;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:4px;font-weight:600;font-size:13px}
+@media (prefers-reduced-motion:no-preference){.dot{transition:background .3s}}
+.auth{max-width:380px;margin:12vh auto 0;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.auth input,.users select{font:500 15px var(--body);padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%}
+.auth label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.linkbtn{all:unset;cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
+.who{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.users td{white-space:normal}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="authWrap" hidden>
+  <form class="auth" id="authForm">
+    <h1 style="font-size:24px">Satış Jurnalı</h1>
+    <div class="note" id="authNote">Hesabınla daxil ol.</div>
+    <label>E-poçt<input id="email" type="email" autocomplete="email" required></label>
+    <label>Şifrə<input id="pass" type="password" autocomplete="current-password" minlength="6" required></label>
+    <button class="btn" id="authBtn" type="submit">Daxil ol</button>
+    <button class="linkbtn" id="authMode" type="button">Hesabın yoxdur? Qeydiyyat</button>
+  </form>
+</div>
+<div class="wrap" id="app" hidden>
+  <header>
+    <div>
+      <h1>Satış Jurnalı</h1>
+      <div class="sub" id="subline">Gündəlik satış hesabatı · çeklər, tonaj, nağd və nisyə</div>
+    </div>
+    <div class="who"><span class="live" id="live"><span class="dot"></span><span id="liveTxt">Qoşulur…</span></span><span id="me"></span><button class="linkbtn" id="usersBtn" hidden>İstifadəçilər</button><button class="linkbtn" id="logout">Çıxış</button></div>
+  </header>
+
+  <label class="drop" id="drop" hidden>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv">
+    <b>Səhər hesabatını yüklə</b>
+    <span class="note">Excel faylını bura at və ya seç. Yoxlanılıb düzəldiləcək, sonra yayımlayırsan.</span>
+    <span class="btn ghost" style="margin-left:auto">Fayl seç</span>
+  </label>
+
+  <div class="panel" id="review" hidden>
+    <div class="bar">
+      <div><h2 id="revTitle" style="margin:0">Yoxlama</h2><div class="note" id="revNote"></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span id="bulk" hidden><select id="bulkSel" aria-label="Zavodu olmayanlar"><option value="">Zavodu olmayanlara…</option><option>Zavod 1</option><option>Zavod 2</option></select></span><button class="btn ghost" id="cancel">Ləğv et</button><button class="btn" id="publish">Yayımla</button></div>
+    </div>
+    <div class="tablebox"><table id="revTable"></table></div>
+  </div>
+
+  <div class="panel" id="users" hidden><div class="bar"><h2 style="margin:0">İstifadəçilər</h2><button class="btn ghost" id="usersClose">Bağla</button></div><div class="note">Yeni qeydiyyatdan keçən "Gözləyir" statusunda olur. Rol ver: Yükləyən faylı yükləyir, Baxan yalnız baxır.</div><div class="tablebox users"><table id="usersTable"></table></div></div>
+  <div class="days" id="days"></div>
+  <div id="main"><div class="empty">Hələ hesabat yoxdur. Səhər Excel faylını yüklə, cədvəl burada görünəcək.</div></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div class="wrap" id="pendingWrap" hidden><div class="auth"><h1 style="font-size:22px">Təsdiq gözləyir</h1><div class="note">Hesabın yaradılıb. Admin sənə rol verəndən sonra cədvəl görünəcək.</div><button class="btn ghost" id="logout2">Çıxış</button></div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=(n,d=2)=>(Number(n)||0).toLocaleString('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:d}).replace(',', '.');
+const man=n=>fmt(n)+' ₼';
+const r2=n=>Math.round(n*100)/100;
+const MONTHS=['yanvar','fevral','mart','aprel','may','iyun','iyul','avqust','sentyabr','oktyabr','noyabr','dekabr'];
+const MSHORT=['yan','fev','mar','apr','may','iyn','iyl','avq','sen','okt','noy','dek'];
+function norm(s){return String(s??'').trim().toLowerCase().replace(/ə/g,'e').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ü/g,'u').replace(/ç/g,'c').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/[^a-z0-9]/g,'')}
+const iso=(y,m,d)=>`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+const dmy=s=>{const [y,m,d]=s.split('-');return `${d}.${m}.${y}`};
+const dShort=s=>{const [,m,d]=s.split('-');return `${+d} ${MSHORT[+m-1]}`};
+let toastT;function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,2600)}
+
+/* ---------- parsing ---------- */
+const HEAD={ss:'ss',sira:'ss',no:'ss',tarix:'date',material:'material',fraksiya:'fraction',kontragent:'client',musteri:'client',nomre:'plate',masinnomresi:'plate',ceknomresi:'cek',cek:'cek',ov:'unit',olcuvahidi:'unit',miqdar:'qty',qiymet:'price',mebleg:'amount',odemesekli:'pay',odenis:'pay',qeyd:'note',zavod:'plant',zavodno:'plant',sex:'plant'};
+function monthFromWord(w){const t=norm(w);if(!t)return 0;let i=MSHORT.indexOf(t.slice(0,3));if(t==='iyun'||t==='iyn')return 6;if(t==='iyul'||t==='iyl')return 7;if(i>=0&&!t.startsWith('iy'))return i+1;i=MONTHS.findIndex(m=>m.startsWith(t)||t.startsWith(m));return i+1}
+function parseDate(v,year){
+  if(v instanceof Date&&!isNaN(v))return iso(v.getFullYear(),v.getMonth()+1,v.getDate());
+  if(typeof v==='number'&&v>20000){const d=new Date(Math.round((v-25569)*864e5));return iso(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate())}
+  const s=String(v??'').trim();if(!s)return null;
+  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return iso(+m[1],+m[2],+m[3]);
+  m=s.match(/^(\d{1,2})[.\-\/](\d{1,2})(?:[.\-\/](\d{2,4}))?$/);if(m){let y=m[3]?+m[3]:year;if(y<100)y+=2000;return iso(y,+m[2],+m[1])}
+  m=s.match(/^(\d{1,2})[\s.\-\/]*([^\d\s.\-\/]+)\.?(?:[\s.\-\/]+(\d{2,4}))?$/);
+  if(m){const mo=monthFromWord(m[2]);if(mo){let y=m[3]?+m[3]:year;if(y<100)y+=2000;return iso(y,mo,+m[1])}}
+  return null;
+}
+function num(v){if(typeof v==='number')return v;const s=String(v??'').replace(/\s/g,'').replace(',','.').replace(/[^\d.\-]/g,'');if(!s)return null;const n=parseFloat(s);return isNaN(n)?null:n}
+function clean(s){return String(s??'').replace(/\s+/g,' ').trim()}
+function fixWords(s){return clean(s).split(' ').map(w=>{const n=norm(w);if(n==='nagd'||n==='negd')return 'Nağd';if(n==='satis')return 'Satış';if(n==='nisye')return 'Nisyə';return w}).join(' ')}
+function canonPay(s){const n=norm(s);if(!n)return '';if(n.startsWith('nag')||n.startsWith('neg')||n==='nagd')return 'Nağd';if(n.startsWith('nis'))return 'Nisyə';if(n.startsWith('koc')||n.startsWith('bank')||n.startsWith('kocur'))return 'Köçürmə';if(n.startsWith('kart'))return 'Kart';return null}
+const MAT={seben:'Şeben',sheben:'Şeben',qum:'Qum',cinqil:'Çınqıl',qirma:'Qırma',sement:'Sement',beton:'Beton',torpaq:'Torpaq'};
+function canonPlant(s){const n=norm(s);if(!n)return '';if(/^(zavod|z)?0*1$/.test(n))return 'Zavod 1';if(/^(zavod|z)?0*2$/.test(n))return 'Zavod 2';return null}
+function canonUnit(s){const n=norm(s);if(!n)return '';if(['ton','tn','t','tonn'].includes(n))return 'Ton';if(['m3','kub','kubm','m'].includes(n))return 'm³';if(n==='ed'||n==='edd'||n==='eded')return 'Ədəd';return clean(s)}
+
+function parseSheet(rows,year){
+  let hi=-1,map={};
+  for(let i=0;i<Math.min(rows.length,15);i++){
+    const m={};(rows[i]||[]).forEach((c,j)=>{const k=HEAD[norm(c)];if(k&&!(k in m))m[k]=j});
+    if(Object.keys(m).length>=4){hi=i;map=m;break}
+  }
+  if(hi<0)throw new Error('Başlıq sətri tapılmadı. Faylda "Tarix", "Material", "Miqdar", "Qiymət" sütunları olmalıdır.');
+  const out=[];
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i]||[];const g=k=>map[k]==null?'':r[map[k]];
+    if(!['material','client','qty','amount','cek'].some(k=>clean(g(k))!==''))continue;
+    const fx=[],er=[],ch=new Set(),ek=new Set();
+    const set=(k,orig,val,label)=>{if(clean(orig)!==clean(val)&&clean(orig)!==''){fx.push(`${label}: "${clean(orig)}" → "${val}"`);ch.add(k)}return val};
+    const date=parseDate(g('date'),year);if(!date){er.push('Tarix oxunmadı');ek.add('date')}
+    const mRaw=g('material');const mat=set('material',mRaw,MAT[norm(mRaw)]||(clean(mRaw).charAt(0).toLocaleUpperCase('az')+clean(mRaw).slice(1)),'Material');
+    let frRaw=g('fraction');if(frRaw instanceof Date)frRaw='';const fr=set('fraction',frRaw,clean(frRaw).replace(/\s*[\/–—-]\s*/g,'-'),'Fraksiya');
+    const client=set('client',g('client'),fixWords(g('client')),'Kontragent');
+    const plate=set('plate',g('plate'),clean(g('plate')).toUpperCase().replace(/[\s\-]/g,''),'Nömrə');
+    const cek=clean(g('cek')).replace(/\.0+$/,'');
+    const unit=set('unit',g('unit'),canonUnit(g('unit')),'Ö/V');
+    const qty=num(g('qty')),price=num(g('price')),orig=num(g('amount'));
+    let amount=orig;
+    if(qty!=null&&price!=null){amount=r2(qty*price);if(orig!=null&&Math.abs(orig-amount)>0.01){fx.push(`Məbləğ: ${fmt(orig)} → ${fmt(amount)} (${fmt(qty,3)} × ${fmt(price)})`);ch.add('amount')}}
+    if(qty==null){er.push('Miqdar yoxdur');ek.add('qty')}
+    if(price==null){er.push('Qiymət yoxdur');ek.add('price')}
+    let pay=canonPay(g('pay'));
+    if(pay===null){pay=clean(g('pay'));er.push(`Naməlum ödəmə şəkli: "${pay}"`);ek.add('pay')}
+    else if(pay===''){er.push('Ödəmə şəkli yoxdur');ek.add('pay')}
+    else set('pay',g('pay'),pay,'Ödəmə');
+    let plant=canonPlant(g('plant'));
+    if(plant===null){plant='';er.push(`Naməlum zavod: "${clean(g('plant'))}"`);ek.add('plant')}
+    else if(plant===''){er.push('Zavod göstərilməyib');ek.add('plant')}
+    else set('plant',g('plant'),plant,'Zavod');
+    if(!cek)er.push('Çek nömrəsi yoxdur');
+    out.push({date,plant,material:mat,fraction:fr,client,plate,cek,unit,qty:qty??0,price:price??0,amount:amount??0,pay,note:clean(g('note')),_fx:fx,_er:er,_ch:[...ch],_ek:[...ek]});
+  }
+  // duplicate cheque check
+  const seen={};out.forEach(r=>{if(r.cek){if(seen[r.cek]){r._er.push(`Çek ${r.cek} təkrarlanır`);r._ek.push('cek')}seen[r.cek]=1}});
+  return out;
+}
+
+/* ---------- state ---------- */
+let sb=null,me=null,role=null,canWrite=false,days=[],selDay=null,pending=null,plantF='';
+function payClass(p){return p==='Nağd'?'nagd':p==='Nisyə'?'nisye':'other'}
+const COLS=[['ss','S/s','n'],['date','Tarix',''],['plant','Zavod',''],['material','Material',''],['fraction','Fraksiya',''],['client','Kontragent',''],['plate','Nömrə','m'],['cek','Çek №','m'],['unit','Ö/V',''],['qty','Miqdar','n'],['price','Qiymət','n'],['amount','Məbləğ','n'],['pay','Ödəmə','']];
+function cell(r,k,i){
+  if(k==='ss')return i+1;if(k==='date')return r.date?dmy(r.date):'—';
+  if(k==='qty')return fmt(r.qty,3);if(k==='price'||k==='amount')return fmt(r[k]);
+  if(k==='plant'){if(r.plant)return `<span class="pill z${r.plant.slice(-1)}">${esc(r.plant)}</span>`;return selPlant(i)}
+  if(k==='pay')return r.pay?`<span class="pill ${payClass(r.pay)}">${esc(r.pay)}</span>`:'—';
+  return esc(r[k])||'<span class="note">—</span>';
+}
+let selCtx=null;
+function selPlant(i){if(!selCtx)return '<span class="pill miss">Yoxdur</span>';return `<select class="psel" data-ctx="${selCtx}" data-i="${i}" aria-label="Zavod seç"><option value="">Zavod?</option><option>Zavod 1</option><option>Zavod 2</option></select>`}
+function totals(rows){const t={sum:0,cash:0,credit:0,other:0,qty:0};rows.forEach(r=>{t.sum+=r.amount;t.qty+=r.unit==='Ton'?r.qty:0;if(r.pay==='Nağd')t.cash+=r.amount;else if(r.pay==='Nisyə')t.credit+=r.amount;else t.other+=r.amount});return t}
+
+/* ---------- review ---------- */
+function showReview(rows,fname){
+  pending={rows,fname};
+  const nFix=rows.reduce((a,r)=>a+r._fx.length,0),nErr=rows.reduce((a,r)=>a+r._er.length,0);
+  const dates=[...new Set(rows.map(r=>r.date).filter(Boolean))].sort();
+  const exist=dates.filter(d=>days.some(x=>x.date===d));
+  $('revTitle').textContent=`${fname} · ${rows.length} sətir`;
+  let note=`${nFix} düzəliş edildi`+(nErr?`, ${nErr} problem var (qırmızı)`:', problem yoxdur')+'.';
+  if(dates.length)note+=` Gün: ${dates.map(dmy).join(', ')}.`;
+  if(exist.length)note+=` ${exist.map(dmy).join(', ')} artıq yayımlanıb, yenisi onu əvəz edəcək.`;
+  $('revNote').textContent=note;$('revNote').className='note'+(nErr||exist.length?' warn':'');
+  selCtx='rev';
+  const head='<thead><tr>'+COLS.map(c=>`<th class="${c[2]}">${c[1]}</th>`).join('')+'<th>Düzəlişlər</th></tr></thead>';
+  const body=rows.map((r,i)=>'<tr>'+COLS.map(c=>`<td class="${c[2]} ${r._ek.includes(c[0])?'errc':r._ch.includes(c[0])?'fixed':''}">${cell(r,c[0],i)}</td>`).join('')+`<td class="fixlist">${r._er.map(e=>`<span class="e">${esc(e)}</span>`).join('')}${r._fx.map(f=>`<span>${esc(f)}</span>`).join('')||(r._er.length?'':'—')}</td></tr>`).join('');
+  $('revTable').innerHTML=head+'<tbody>'+body+'</tbody>';selCtx=null;
+  $('bulk').hidden=!rows.some(r=>!r.plant);
+  $('publish').disabled=!rows.some(r=>r.date);
+  $('review').hidden=false;$('review').scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function handleFile(f){
+  try{
+    const buf=await f.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array',cellDates:true});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+    const parsed=parseSheet(rows,new Date().getFullYear());
+    if(!parsed.length)throw new Error('Faylda satış sətri tapılmadı.');
+    showReview(parsed,f.name);
+  }catch(e){toast(e.message||'Fayl oxunmadı')}
+}
+async function publish(){
+  if(!pending||!sb)return;const btn=$('publish');btn.disabled=true;btn.textContent='Yayımlanır…';
+  const by={};pending.rows.filter(r=>r.date).forEach(r=>{(by[r.date]=by[r.date]||[]).push(r)});
+  try{
+    for(const d of Object.keys(by).sort()){
+      const rows=by[d].map(({_fx,_er,_ch,_ek,...r})=>({...r,fixes:_fx,issues:_er}));
+      const t=totals(rows);
+      const {error}=await sb.from('sales_days').upsert({date:d,rows,file:pending.fname,uploaded_at:new Date().toISOString(),uploaded_by:me.id,total:r2(t.sum),cash:r2(t.cash),credit:r2(t.credit),tons:r2(t.qty)});
+      if(error)throw error;
+    }
+    selDay=Object.keys(by).sort().pop();pending=null;$('review').hidden=true;toast('Yayımlandı');
+    await loadDays();
+  }catch(e){toast(e.code==='42501'?'Yükləmək üçün icazən yoxdur':'Yayımlanmadı: '+(e.message||'bağlantı xətası'))}
+  btn.disabled=false;btn.textContent='Yayımla';
+}
+
+/* ---------- live view ---------- */
+function renderDays(){
+  $('days').innerHTML=days.map(d=>`<button class="chip ${d.date===selDay?'sel':''}" data-d="${d.date}">${dShort(d.date)}</button>`).join('');
+}
+function group(rows,key){const m={};rows.forEach(r=>{const k=r[key]||'—';m[k]=m[k]||{amount:0,qty:0,n:0};m[k].amount+=r.amount;m[k].qty+=r.qty;m[k].n++});return Object.entries(m).sort((a,b)=>b[1].amount-a[1].amount)}
+function renderMain(){
+  const day=days.find(d=>d.date===selDay);
+  if(!day){$('main').innerHTML='<div class="empty">Hələ hesabat yoxdur. Səhər Excel faylını yüklə, cədvəl burada görünəcək.</div>';return}
+  const all=day.rows||[];const rows=plantF?all.filter(r=>r.plant===plantF):all,t=totals(rows);
+  const z1=totals(all.filter(r=>r.plant==='Zavod 1')),z2=totals(all.filter(r=>r.plant==='Zavod 2')),zn=all.filter(r=>!r.plant).length;
+  const month=selDay.slice(0,7);
+  const mRows=days.filter(d=>d.date.startsWith(month)).flatMap(d=>d.rows||[]).filter(r=>!plantF||r.plant===plantF);
+  const credit=group(mRows.filter(r=>r.pay==='Nisyə'),'client');
+  const mats=group(rows,'material');
+  const issues=rows.filter(r=>(r.issues||[]).length).length;
+  $('subline').textContent=`${dmy(selDay)} · ${rows.length} çek · fayl: ${day.file||'—'}`+(issues?` · ${issues} sətirdə problem`:'');
+  $('main').innerHTML=`
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div class="plants">${[['Zavod 1',z1],['Zavod 2',z2]].map(([n,z])=>`<button class="plant ${plantF===n?'sel':''}" data-p="${n}"><span class="pn"><span class="pill z${n.slice(-1)}">${n}</span><span class="note">${fmt(z.qty,3)} t</span></span><span class="pv">${man(z.sum)}</span><span class="ps"><span style="color:var(--ok)">Nağd ${fmt(z.cash)}</span><span style="color:var(--warn)">Nisyə ${fmt(z.credit)}</span></span></button>`).join('')}</div>
+    ${zn?`<div class="note warn">${zn} çekdə zavod göstərilməyib.${canWrite?' Cədvəldə seç.':''}</div>`:''}
+    <div class="seg" role="tablist">${[['','Hamısı'],['Zavod 1','Zavod 1'],['Zavod 2','Zavod 2']].map(([v,l])=>`<button role="tab" aria-selected="${plantF===v}" class="${plantF===v?'sel':''}" data-p="${v}">${l}</button>`).join('')}</div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Cəmi satış${plantF?' · '+plantF:''}</div><div class="v">${man(t.sum)}</div></div>
+      <div class="kpi"><div class="l">Nağd</div><div class="v" style="color:var(--ok)">${man(t.cash)}</div></div>
+      <div class="kpi"><div class="l">Nisyə</div><div class="v" style="color:var(--warn)">${man(t.credit)}</div></div>
+      <div class="kpi"><div class="l">Tonaj</div><div class="v">${fmt(t.qty,3)} t</div></div>
+    </div>
+    ${(selCtx=canWrite?'live':null,'')}<div class="tablebox"><table>
+      <thead><tr>${COLS.map(c=>`<th class="${c[2]}">${c[1]}</th>`).join('')}<th>Qeyd</th></tr></thead>
+      <tbody>${rows.map((r,i)=>'<tr>'+COLS.map(c=>`<td class="${c[2]} ${(r.issues||[]).length&&c[0]==='ss'?'errc':''}">${cell(r,c[0],i)}</td>`).join('')+`<td class="fixlist">${esc(r.note)}${(r.issues||[]).map(e=>`<span class="e">${esc(e)}</span>`).join('')}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="9">Cəmi</td><td class="n">${fmt(t.qty,3)}</td><td></td><td class="n">${fmt(t.sum)}</td><td colspan="2"></td></tr></tfoot>
+    </table></div>
+    <div class="grid2">
+      <section><h2>Material üzrə · ${dShort(selDay)}${plantF?' · '+plantF:''}</h2><div class="tablebox"><table>
+        <thead><tr><th>Material</th><th class="n">Çek</th><th class="n">Miqdar</th><th class="n">Məbləğ</th></tr></thead>
+        <tbody>${mats.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${v.n}</td><td class="n">${fmt(v.qty,3)}</td><td class="n">${fmt(v.amount)}</td></tr>`).join('')}</tbody></table></div></section>
+      <section><h2>Nisyə kontragentlər · ${MONTHS[+month.slice(5)-1]} ayı${plantF?' · '+plantF:''}</h2>${credit.length?`<div class="tablebox"><table>
+        <thead><tr><th>Kontragent</th><th class="n">Çek</th><th class="n">Məbləğ</th></tr></thead>
+        <tbody>${credit.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${v.n}</td><td class="n">${fmt(v.amount)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td>Cəmi</td><td></td><td class="n">${fmt(credit.reduce((a,[,v])=>a+v.amount,0))}</td></tr></tfoot></table></div>`:'<div class="empty">Bu ay nisyə satış yoxdur.</div>'}</section>
+    </div>
+  </div>`;selCtx=null;
+}
+
+/* ---------- wiring ---------- */
+$('days').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b){selDay=b.dataset.d;renderDays();renderMain()}});
+$('file').addEventListener('change',e=>{const f=e.target.files[0];if(f)handleFile(f);e.target.value=''});
+const drop=$('drop');
+['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleFile(f)});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(b){plantF=plantF===b.dataset.p&&b.classList.contains('plant')?'':b.dataset.p;renderMain()}});
+$('bulkSel').addEventListener('change',e=>{const v=e.target.value;if(!v||!pending)return;pending.rows.forEach(r=>{if(!r.plant)setPlant(r,v)});e.target.value='';showReview(pending.rows,pending.fname)});
+function setPlant(r,v){r.plant=v;const drop=x=>!/zavod/i.test(x);r._er=(r._er||[]).filter(drop);r._ek=(r._ek||[]).filter(k=>k!=='plant');if(r.issues)r.issues=r.issues.filter(drop)}
+document.addEventListener('change',async e=>{const s=e.target.closest('.psel');if(!s||!s.value)return;const i=+s.dataset.i;
+  if(s.dataset.ctx==='rev'){setPlant(pending.rows[i],s.value);showReview(pending.rows,pending.fname);return}
+  const day=days.find(d=>d.date===selDay);if(!day||!sb)return;
+  const shown=plantF?day.rows.filter(r=>r.plant===plantF):day.rows;const target=shown[i];
+  const rows=day.rows.map(r=>{const c=JSON.parse(JSON.stringify(r));if(r===target)setPlant(c,s.value);return c});
+  s.disabled=true;try{const {error}=await sb.from('sales_days').update({rows}).eq('date',day.date);if(error)throw error;await loadDays();toast('Saxlandı')}catch(err){s.disabled=false;toast('Saxlanmadı: icazən yoxdur və ya bağlantı kəsildi')}});
+$('cancel').onclick=()=>{pending=null;$('review').hidden=true};
+$('publish').onclick=publish;
+
+const SUPABASE_URL='https://picziajcjpfiwclgamop.supabase.co';
+const SUPABASE_KEY='sb_publishable_hfwVIZWP2MQu1j3xKuC0og_c3K4Fy1X';
+sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let signup=false,channel=null;
+const ROLES={admin:'Admin',uploader:'Yükləyən',viewer:'Baxan',pending:'Gözləyir'};
+function show(w){['authWrap','app','pendingWrap'].forEach(id=>$(id).hidden=id!==w)}
+$('authMode').onclick=()=>{signup=!signup;$('authBtn').textContent=signup?'Qeydiyyatdan keç':'Daxil ol';$('authMode').textContent=signup?'Hesabın var? Daxil ol':'Hesabın yoxdur? Qeydiyyat';$('pass').autocomplete=signup?'new-password':'current-password'};
+$('authForm').addEventListener('submit',async e=>{e.preventDefault();const email=$('email').value.trim(),password=$('pass').value;$('authBtn').disabled=true;
+  const {data,error}=signup?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});
+  $('authBtn').disabled=false;
+  if(error){$('authNote').textContent=error.message.includes('Invalid login')?'E-poçt və ya şifrə səhvdir.':error.message.includes('not confirmed')?'E-poçtunu təsdiqlə: sənə gələn məktubdakı linkə bas.':error.message;$('authNote').className='note warn';return}
+  if(signup&&!data.session){$('authNote').textContent='E-poçtuna təsdiq məktubu göndərildi. Linkə bas, sonra daxil ol.';$('authNote').className='note'}});
+const out=async()=>{await sb.auth.signOut()};$('logout').onclick=out;$('logout2').onclick=out;
+async function loadDays(){
+  const {data,error}=await sb.from('sales_days').select('date,rows,file,uploaded_at').order('date',{ascending:false}).limit(120);
+  if(error){$('live').classList.remove('on');$('liveTxt').textContent='Bağlantı kəsildi';return}
+  days=data;if(!selDay||!days.some(d=>d.date===selDay))selDay=days[0]?.date||null;
+  $('live').classList.add('on');$('liveTxt').textContent='Canlı';renderDays();renderMain();
+}
+async function loadUsers(){
+  const {data,error}=await sb.from('profiles').select('id,email,role,created_at').order('created_at');
+  if(error){toast('Siyahı açılmadı');return}
+  $('usersTable').innerHTML='<thead><tr><th>E-poçt</th><th>Rol</th></tr></thead><tbody>'+data.map(u=>`<tr><td>${esc(u.email)}</td><td>${u.id===me.id?ROLES[u.role]:`<select class="rsel" data-id="${u.id}" aria-label="Rol">${Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${k===u.role?'selected':''}>${v}</option>`).join('')}</select>`}</td></tr>`).join('')+'</tbody>';
+}
+$('usersBtn').onclick=()=>{$('users').hidden=false;loadUsers()};$('usersClose').onclick=()=>$('users').hidden=true;
+document.addEventListener('change',async e=>{const s=e.target.closest('.rsel');if(!s)return;const {error}=await sb.from('profiles').update({role:s.value}).eq('id',s.dataset.id);toast(error?'Saxlanmadı':'Rol dəyişdi')});
+async function start(session){
+  if(channel){sb.removeChannel(channel);channel=null}
+  if(!session){me=null;show('authWrap');return}
+  me=session.user;
+  const {data:p}=await sb.from('profiles').select('role').eq('id',me.id).maybeSingle();
+  role=p?.role||'pending';
+  if(role==='pending'){show('pendingWrap');return}
+  canWrite=role==='admin'||role==='uploader';
+  $('drop').hidden=!canWrite;$('usersBtn').hidden=role!=='admin';
+  $('me').textContent=`${me.email} · ${ROLES[role]}`;
+  show('app');await loadDays();
+  channel=sb.channel('sales').on('postgres_changes',{event:'*',schema:'public',table:'sales_days'},()=>loadDays()).subscribe();
+}
+let lastUid;sb.auth.onAuthStateChange((ev,session)=>{const uid=session?.user?.id||null;if(uid===lastUid&&ev!=='SIGNED_OUT')return;lastUid=uid;setTimeout(()=>start(session),0)});
+</script>
+</body>
+</html>
