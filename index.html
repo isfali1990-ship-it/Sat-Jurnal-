@@ -77,6 +77,9 @@ tfoot td{font-weight:700;border-top:2px solid var(--fg)}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button.sel{background:var(--fg);color:var(--bg)}
 select{font:500 13px var(--body);padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--fg)}
+.delbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end}
+.delbtn{color:var(--bad)}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
 .fixed{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent)}
 .errc{background:var(--bad-soft);color:var(--bad)}
 .fixlist{font-size:12px;color:var(--muted);white-space:normal;min-width:220px}
@@ -222,7 +225,7 @@ function parseSheet(rows,year){
 }
 
 /* ---------- state ---------- */
-let sb=null,me=null,role=null,canWrite=false,days=[],selDay=null,pending=null,plantF='';
+let delArm=null,sb=null,me=null,role=null,canWrite=false,days=[],selDay=null,pending=null,plantF='';
 function payClass(p){return p==='Nağd'?'nagd':p==='Nisyə'?'nisye':'other'}
 const COLS=[['ss','S/s','n'],['date','Tarix',''],['plant','Zavod',''],['material','Material',''],['fraction','Fraksiya',''],['client','Kontragent',''],['plate','Nömrə','m'],['cek','Çek №','m'],['unit','Ö/V',''],['qty','Miqdar','n'],['price','Qiymət','n'],['amount','Məbləğ','n'],['pay','Ödəmə','']];
 function cell(r,k,i){
@@ -300,6 +303,7 @@ function renderMain(){
   $('subline').textContent=`${dmy(selDay)} · ${rows.length} çek · fayl: ${day.file||'—'}`+(issues?` · ${issues} sətirdə problem`:'');
   $('main').innerHTML=`
   <div style="display:flex;flex-direction:column;gap:18px">
+    ${canWrite?`<div class="delbar">${delArm===selDay?`<span class="note warn">${dmy(selDay)} gününün bütün çekləri silinəcək. Əminsən?</span><button class="btn danger" id="delYes">Bəli, sil</button><button class="btn ghost" id="delNo">Yox</button>`:`<button class="linkbtn delbtn" id="delDay">Bu günü sil</button>`}</div>`:''}
     <div class="plants">${[['Zavod 1',z1],['Zavod 2',z2]].map(([n,z])=>`<button class="plant ${plantF===n?'sel':''}" data-p="${n}"><span class="pn"><span class="pill z${n.slice(-1)}">${n}</span><span class="note">${fmt(z.qty,3)} t</span></span><span class="pv">${man(z.sum)}</span><span class="ps"><span style="color:var(--ok)">Nağd ${fmt(z.cash)}</span><span style="color:var(--warn)">Nisyə ${fmt(z.credit)}</span></span></button>`).join('')}</div>
     ${zn?`<div class="note warn">${zn} çekdə zavod göstərilməyib.${canWrite?' Cədvəldə seç.':''}</div>`:''}
     <div class="seg" role="tablist">${[['','Hamısı'],['Zavod 1','Zavod 1'],['Zavod 2','Zavod 2']].map(([v,l])=>`<button role="tab" aria-selected="${plantF===v}" class="${plantF===v?'sel':''}" data-p="${v}">${l}</button>`).join('')}</div>
@@ -342,6 +346,11 @@ document.addEventListener('change',async e=>{const s=e.target.closest('.psel');i
   const shown=plantF?day.rows.filter(r=>r.plant===plantF):day.rows;const target=shown[i];
   const rows=day.rows.map(r=>{const c=JSON.parse(JSON.stringify(r));if(r===target)setPlant(c,s.value);return c});
   s.disabled=true;try{const {error}=await sb.from('sales_days').update({rows}).eq('date',day.date);if(error)throw error;await loadDays();toast('Saxlandı')}catch(err){s.disabled=false;toast('Saxlanmadı: icazən yoxdur və ya bağlantı kəsildi')}});
+document.addEventListener('click',async e=>{
+  if(e.target.id==='delDay'){delArm=selDay;renderMain();return}
+  if(e.target.id==='delNo'){delArm=null;renderMain();return}
+  if(e.target.id==='delYes'){const d=delArm;e.target.disabled=true;const {error}=await sb.from('sales_days').delete().eq('date',d);delArm=null;
+    if(error){toast('Silinmədi: '+error.message);renderMain();return}selDay=null;toast(dmy(d)+' silindi');await loadDays()}});
 $('cancel').onclick=()=>{pending=null;$('review').hidden=true};
 $('publish').onclick=publish;
 
