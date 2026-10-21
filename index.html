@@ -348,6 +348,7 @@ $('publish').onclick=publish;
 const SUPABASE_URL='https://picziajcjpfiwclgamop.supabase.co';
 const SUPABASE_KEY='sb_publishable_hfwVIZWP2MQu1j3xKuC0og_c3K4Fy1X';
 sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const AUTH_ENABLED=false; // MÜVƏQQƏTİ: login söndürülüb, true edəndə login qayıdır
 let signup=false,channel=null,recovering=false;
 const ROLES={admin:'Admin',uploader:'Yükləyən',viewer:'Baxan',pending:'Gözləyir'};
 function show(w){['authWrap','app','pendingWrap'].forEach(id=>$(id).hidden=id!==w)}
@@ -390,7 +391,8 @@ async function start(session){
   show('app');await loadDays();
   channel=sb.channel('sales').on('postgres_changes',{event:'*',schema:'public',table:'sales_days'},()=>loadDays()).subscribe();
 }
-let lastUid;sb.auth.onAuthStateChange((ev,session)=>{if(ev==='PASSWORD_RECOVERY'||recovering){if(ev==='PASSWORD_RECOVERY')setTimeout(recoveryMode,0);return}const uid=session?.user?.id||null;if(uid===lastUid&&ev!=='SIGNED_OUT')return;lastUid=uid;setTimeout(()=>start(session),0)});
+if(!AUTH_ENABLED){(async()=>{me={id:null};role='uploader';canWrite=true;$('drop').hidden=false;$('usersBtn').hidden=true;$('logout').hidden=true;$('me').textContent='';show('app');await loadDays();channel=sb.channel('sales').on('postgres_changes',{event:'*',schema:'public',table:'sales_days'},()=>loadDays()).subscribe()})()}
+else{let lastUid;sb.auth.onAuthStateChange((ev,session)=>{if(ev==='PASSWORD_RECOVERY'||recovering){if(ev==='PASSWORD_RECOVERY')setTimeout(recoveryMode,0);return}const uid=session?.user?.id||null;if(uid===lastUid&&ev!=='SIGNED_OUT')return;lastUid=uid;setTimeout(()=>start(session),0)})}
 </script>
 </body>
 </html>
